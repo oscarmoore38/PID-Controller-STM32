@@ -11,7 +11,7 @@ With that said, here's what I want from this project:
 
 ### 1. Go Deeper With the Hardware
 
-Arduino was a great entry point. It let me understand important concepts and get a circuit running quickly. But it also abstracts away a lot of the details I actually want to wrestle with, and often left me feeling "but how does that actually work?" I want to be trawling through datasheets and reference manuals, scratching my head trying to figure out what on earth is going on at the hardware level. That may sound strange to some, but I genuinely love that state. To accomplish this goal, I'm upgrading my circuit with an STM32 board. More discussion on the specfic one I chose, and why, later. 
+Arduino was a great entry point. It let me understand important concepts and get a circuit running quickly. But it also abstracts away a lot of the details I actually want to wrestle with, and often left me feeling "but how does that actually work?" I want to be trawling through datasheets and manuals, scratching my head trying to figure out what on earth is going on at the hardware level. That may sound strange to some, but I genuinely love that state. To accomplish this goal, I'm upgrading my circuit with an STM32 board. More discussion on the specfic one I chose, and why, later. 
 
 ---
 
