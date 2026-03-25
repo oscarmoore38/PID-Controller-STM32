@@ -26,3 +26,16 @@ I don't just want to follow a tutorial, slap RTOS on my resume, and call it done
 As mentioned in my last repo, I'm currently reading Making Embedded Systems by Elecia White. I want to start incorporating what I'm learning into this project. I'll get a lot wrong, but I'd rather start trying to adopt practices that experienced people in the field recommend than keep figuring everything out in isolation. You'll notice from my last repo that I built a whole project tightly coupled to a specific board, now that I'm changing boards, a lot of my code across many files needs to change with it. I'm currently on a chapter covering the facade design pattern, which addresses exactly this problem: things change in embedded, frequently, so design for it from the start. More on how I apply this as the project develops.
 
 Let's have some fun! 
+
+## Hardware Design
+
+### Overview 
+
+The core of the circuit stays the same: buck converter, motor driver, OLED, breadboard. The meaningful changes are the MCU and the addition of a second motor.
+
+I actually added the second motor while still on the Nano, and the limitations showed up fast. The Nano has only two hardware interrupt-capable pins, D2 and D3. Reliable encoder reading depends on hardware interrupts on both the A and B channels to accurately track direction and speed, which means two pins per encoder. I'm also planning to incorporate RTOS down the line, which the Nano couldn't accommodate. Sure, upgrading to a better Arduino board would have solved the flash and pin limitations well enough, and for a while I considered it.
+
+So why didn't I do that? Well, as mentioned above, I'd started to notice something. I was reading embedded systems books in my own time, spending evenings and weekends just digging into how things actually work at the hardware level, genuinely enjoying it. That kind of pull told me something about where I wanted to go: closer to the hardware, down not up, below the HALs to what's actually happening. Arduino's abstraction layer was exactly what I needed early on. It got the project off the ground quickly and let me build foundational concepts without getting buried. But I found myself wanting to push further, so I chose a board that would give me that. 
+
+Finally, my goal with this project isn't just to learn, but to simulate what I may actually face as an embedded engineer: here's a board you've never touched, here's the datasheet and manuals, figure it out and get it built. I'm trying to get comfortable in that space.
+
