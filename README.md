@@ -43,8 +43,8 @@ Next came the choice of MCU. Two initially stood out from my research, the L-fam
 
 First stop was memory. This was my first real exposure to datasheets, going directly to ST's website and pulling the specs myself. Here's how they stacked up:
 
-STM32F446RE — 512KB Flash, 128KB RAM
-STM32L476RG — 1MB Flash, 128KB RAM
+- STM32F446RE — 512KB Flash, 128KB RAM
+- STM32L476RG — 1MB Flash, 128KB RAM
 
 So both had identical RAM, more than enough for RTOS, but the L476RG had double the Flash. It looked like the STM32L476RG was the winner.
 
