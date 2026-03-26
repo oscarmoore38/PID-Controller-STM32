@@ -37,7 +37,7 @@ I actually added the second motor while still on the Nano, and the limitations s
 
 ### STM32 Board Choice 
 
-Ok, so what were the main problems I was looking to solve by upgrading my board? I needed more headroom, both memory and pins. The Nano's 2KB of RAM made an upgrade to RTOS unfeasible, and as mentioned previously, pins started getting tight once I introduced a second motor (I may add a third, who knows!). Cost is also a strong factor as this is a self-funded DIY project. So I was looking for something that was a meaningful step up from Arduino; more pins, more memory. While also being cost effective, and well documented to support my learning. Pretty much all signs pointed to the STM32 Nucleo-64 board. An added bonus is the onboard ST-LINK debugger, meaning no extra hardware needed to actually debug my programs. All that for around $30, a no-brainer.
+Ok, so what were the main problems I was looking to solve by upgrading my board? I needed more headroom, both memory and pins. The Nano's 2KB of RAM made an upgrade to RTOS unfeasible, and as mentioned previously, pins started getting tight once I introduced a second motor (I may add a third, who knows!). Cost is also a strong factor as this is a self-funded DIY project. So I was looking for something that was a meaningful step up from Arduino; more pins, more memory. While also being cost effective, and well documented to support my learning. Pretty much all signs pointed to the STM32 Nucleo-64 board. An added bonus is the onboard ST-LINK debugger, meaning no extra hardware needed to actually debug my programs. Plus, it's got a cool little button built into the board, which I'll be repurposing as an ON/OFF switch. All that for around $30, a no-brainer.
 
 Next came the choice of MCU. Two initially stood out from my research, the L-family and F-family, specifically the STM32L476RG and the STM32F446RE. Both were similarly priced, well reviewed, well documented, and available for fast shipping. 
 
@@ -53,3 +53,54 @@ So both had identical RAM, more than enough for RTOS, but the L476RG had double 
 While looking at the STM32L476RG I noticed it sat in ST's "ultra-low power" category, which got me wondering whether that came at a performance cost. Back to the datasheets. Both feature 32-bit ARM Cortex-M4 cores, a significant upgrade from the Nano's 8-bit ATmega328P, but the clock speeds told a different story. The STM32L476RG tops out at 80MHz, while the STM32F446RE reaches 180MHz. More than double, and over ten times faster than the Nano's 16MHz.
 
 Honestly, either would have worked for my use case. But given I'm not running on battery power, the low power advantage of the L476RG wasn't relevant. The STM32F446RE's 512KB Flash is more than sufficient, and the performance advantage is significant. Clear winner.
+
+### Hardware List 
+- Motor / Encoder
+2 x 12V DC motor with built-in quadrature encoder 
+25GA370 DC Encoder Metal Gearmotor – 12V, 150 RPM, Two-Channel Hall-Effect Encoder
+
+- Microcontroller
+STM32 Nucleo Development Board with STM32F446RE MCU NUCLEO-F446RE
+
+- Breadboard + Jumpers
+BOJACK Solderless Breadboard Kit – 830pt + 400pt boards and jumper wires
+
+- Power Supply (AC → DC)
+12V 2A regulated wall adapter
+
+- Buck Converter
+Maxmoral LM2596 Step-Down (DC-DC) Module – for generating 5V logic power
+
+- Motor Driver
+DROK L298 Dual H-Bridge Motor Speed Controller – optocoupler isolation, 6.5V–27V input
+
+- Display
+ELEGOO 0.96" OLED I2C Display (SSD1306-compatible)
+
+### Wiring Diagram
+
+![Wiring Diagram](Diagrams/PID%20Controller%20Diagram.png)
+
+#### Pin Mapping - Quick Reference
+
+**PWM**
+- PE9 — TIM1_CH1 — ENA1 (Motor 1 speed)
+- PC6 — TIM8_CH1 — ENA2 (Motor 2 speed)
+
+**Direction**
+- PC0 — IN1 (Motor 1 forward)
+- PC1 — IN2 (Motor 1 reverse)
+- PC2 — IN3 (Motor 2 forward)
+- PC3 — IN4 (Motor 2 reverse)
+
+**Encoder 1 (TIM2 — 32-bit)**
+- PA5 — TIM2_CH1 — Channel A (note: shared with onboard LED LD2)
+- PB3 — TIM2_CH2 — Channel B
+
+**Encoder 2 (TIM5 — 32-bit)**
+- PA0 — TIM5_CH1 — Channel A
+- PA1 — TIM5_CH2 — Channel B
+
+**OLED (I2C)**
+- PB8 — SCL
+- PC9 — SDA
