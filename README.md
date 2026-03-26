@@ -52,4 +52,4 @@ So both had identical RAM, more than enough for RTOS, but the L476RG had double 
 
 While looking at the STM32L476RG I noticed it sat in ST's "ultra-low power" category, which got me wondering whether that came at a performance cost. Back to the datasheets. Both feature 32-bit ARM Cortex-M4 cores, a significant upgrade from the Nano's 8-bit ATmega328P, but the clock speeds told a different story. The STM32L476RG tops out at 80MHz, while the STM32F446RE reaches 180MHz. More than double, and over ten times faster than the Nano's 16MHz.
 
-Honestly, either would have worked for this use case. But given I'm not running on battery power, the low power advantage of the L476RG wasn't relevant. The STM32F446RE's 512KB Flash is more than sufficient, and the performance advantage is significant. Clear winner.
+Honestly, either would have worked for my use case. But given I'm not running on battery power, the low power advantage of the L476RG wasn't relevant. The STM32F446RE's 512KB Flash is more than sufficient, and the performance advantage is significant. Clear winner.
