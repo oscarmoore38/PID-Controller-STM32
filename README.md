@@ -48,7 +48,7 @@ First stop was memory. This was my first real exposure to datasheets, going dire
 
 So both had identical RAM, more than enough for RTOS, but the STM32L476RG had double the Flash. It looked like the STM32L476RG was the winner.
 
-**Hold on!**
+**Hold the phone!**
 
 While looking at the STM32L476RG I noticed it sat in ST's "ultra-low power" category, which got me wondering whether that came at a performance cost. Back to the datasheets. Both feature 32-bit ARM Cortex-M4 cores, a significant upgrade from the Nano's 8-bit ATmega328P, but the clock speeds told a different story. The STM32L476RG tops out at 80MHz, while the STM32F446RE reaches 180MHz. More than double, and over ten times faster than the Nano's 16MHz.
 
