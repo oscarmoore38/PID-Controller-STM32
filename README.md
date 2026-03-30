@@ -81,14 +81,14 @@ ELEGOO 0.96" OLED I2C Display (SSD1306-compatible)
 
 ![Wiring Diagram](Diagrams/PID%20Controller%20Diagram.png)
 
-#### Pin Mapping 
+### Pin Mapping 
 Most of the pin mapping was actually straightforward. I had the datasheet and user manual up in front of me. The datasheet was great for giving an overview of the MCU pins and which board pins they mapped to. The user manual would tell me the primary function of the pin. I could also reference the datasheet to see the alternate functions of pins in case I needed different functionality. Motor forward and reverse needed general GPIO pins, the OLED needed pins supporting SDA and SCL, and ENA for the motor driver needed pins that supported PWM. All simple enough. The hard part was actually figuring out the pins for my encoder signals, which I'd saved for last. On my Nano I'd simply used pins that were programmed as interrupts, so each time a signal hit, my processor stopped what it was doing and recorded that signal (never did seem particularly efficient). So I went looking for interrupt pins first. While doing that, I'd remembered what I'd read in the datasheet when looking at the timers for PWM: "They are capable of handling quadrature (incremental) encoder signals."
 
 Side note, but I think the name "Timers" is slightly misleading. Sure, they're primarily used for tracking time, but under the hood they're essentially just a counter that you can increment up, and sometimes, based on the MCU and the timers in that MCU, also decrement. Now realizing I could use a timer to track encoder signals, meaning I wouldn't be interrupting the processor, I just needed to pick which ones to use. I went with TIM2 and TIM5 as they're the only timers with a width of 32 bits. I want to avoid overflowing. In this iteration, I'll be tracking direction as well as speed, so the rising and falling edges of both channel A and B, which is four in total. Each produces 408 pulses per revolution, so 1,632 pulses total per revolution. Modeling at worst case, and assuming I use the motor's fastest speed, that means 244,800 pulses would be produced per minute, which on a 16-bit timer, only capable of holding an integer up to 65,536, means I'd overflow after running my circuit for around 16 seconds — no good. A 32-bit timer, on the other hand, would allow me to run my loop for around 292 hours.
 
 The one wrinkle was that TIM2_CH1 and TIM5_CH1, and TIM2_CH2 and TIM5_CH2, share the same pins: PA0 and PA1. There was an alternate pin for TIM2_CH1 and TIM2_CH2 — PA5 and PB3 — however, PA5 is shared with the onboard user LED, LD2. Checking the user manual section on onboard LEDs, it seemed I lucked out: LD2 is not essential. The important ones being LD1 (communication) and LD3 (power). So the green LED will probably blink while my circuit is running, but nothing detrimental should happen as far as I can tell at this stage.
 
-#### Quick Reference 
+### Quick Reference 
 **PWM**
 - PE9 — TIM1_CH1 — ENA1 (Motor 1 speed)
 - PC6 — TIM8_CH1 — ENA2 (Motor 2 speed)
