@@ -90,7 +90,7 @@ With timers selected, I first picked arbitrary channels within these timers, fig
 
 ### Quick Reference 
 **PWM**
-- PE9 — TIM1_CH1 — ENA1 (Motor 1 speed)
+- PA8 — TIM1_CH1 — ENA1 (Motor 1 speed)
 - PC6 — TIM8_CH1 — ENA2 (Motor 2 speed)
 
 **Direction**
