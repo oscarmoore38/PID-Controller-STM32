@@ -122,4 +122,7 @@ Whenever I'm faced with a new situation, I always do the same thing. Before divi
 ### Design 
 As mentioned above, I wanted to be more intentional about software design this time around. Below is a block diagram showing the general outline. I've gone with a facade design pattern, where the hardware layer is abstracted away from the application layer — main, my software objects, and types. All hardware setup lives in dedicated setup files, grouped by peripheral family: GPIO, Timers, PWM, and I2C. If my board changes, I add new setup files and update a few lines in main, everything else stays untouched. I'm sure there's plenty I'm still missing, but the core idea is to isolate the code that changes so it's all in one place rather than scattered across the project.
 
+![Design Diagram](Diagrams/PI-Controller%20Software%20Design.png)
+
+
 
