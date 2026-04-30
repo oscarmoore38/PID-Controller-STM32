@@ -124,5 +124,43 @@ As mentioned above, I wanted to be more intentional about software design this t
 
 ![Design Diagram](Diagrams/PI-Controller%20Software%20Design.png)
 
+### Iteration 1 — Spin Motors with PWM
+I like to break my work into chunks and start with the simplest thing first. To me, that was just spinning both motors with PWM, not yet worrying about timing intervals, encoder signals, RPM calculation, PID math, or the display. Nothing here was too complicated. I initialized the peripherals I needed by enabling their clocks via the RCC peripheral, then set mode and state on each peripheral's appropriate registers. GPIO pins were straightforward. Enabling the timers for PWM mode was slightly more involved than my previous experience setting up a timer for intervals. Still used the prescaler to bring down the tick rate. Then ARR, which in the context of PWM determines the cycle length of the PWM signal (frequency), and CCR, which determines how long the signal stays high before going low. Together, these two produce the duty cycle. Simple enough, if ARR is 10 and CCR is 5, I'm producing a 50% duty cycle PWM signal.
 
+At first I thought the values in ARR and CCR could be arbitrary as long as they produced the desired duty cycle, so 10 and 5 does the same thing as 1000 and 500. I was wrong. Fewer counts in ARR means the timer overflows faster, which means a higher PWM frequency. You have to choose a frequency within the range your motor driver can handle. I checked the spec sheet, 0 to 10kHz. I picked 1kHz. It's towards the lower end of the range, still higher than what Arduino's analogWrite() defaults to, and the math is easier. Here's how I determined my values:
 
+- HSI default clock = 16MHz = 16,000,000 ticks per second.
+- Without a prescaler, my 16-bit timer would overflow in about 4ms, roughly 250Hz, too slow.
+- A prescaler value of 15 (off by one like ARR, CCR) brings the tick rate to 1,000,000 ticks per second.
+- Setting ARR to 999 means the timer overflows every 1000 ticks, 1000 times per second, or 1kHz.
+- CCR of 499 gives me 50% duty cycle.
+
+One other thing I learned. TIM1 and TIM8 are advanced timers. Beyond basic setup, you need to enable the MOE bit in the BDTR register, which is a master output switch. Without it, output is disabled by default. I also had to enable CC1E for channel 1, the channel my timer is using. Without it, the PWM signal is generated internally but never routed to the physical pin.
+I like writing bare-metal. It's amazing how much more you learn. Beyond a basic understanding of PWM, I never had to think about any of this with analogWrite(). Arduino just handled it. My Arduino setup was roughly 15 lines of code for the entire project. I'm not even done with setup here and I'm already at 70+ lines.
+
+### Iteration 1 — Debug
+I wrote the code under the "Iteration 1 - spinning two motors with PWM" commit, flashed it to my board, and nothing. Motors didn't spin. Checklist:
+
+- **Power** — LD3 was illuminated. My gut said this was a circuit issue, not software.
+
+- **Loose connections** — checked everything. Still nothing.
+
+- **Multimeter** — direction pins outputting ~3.3V high and 0V low. PWM pins outputting ~1.67V, correct for 50% duty cycle. So now fairly certain this wasn't a software issue.
+
+- **Accidental discovery** — while probing, I knocked the board's GND wire loose and the motor started spinning. Weird. Checked that everything shared a common ground. It did.
+
+- **Replication** — put the GND back and started pulling other wires. Removing the high signal wire to the motor driver also spun the motor. Even weirder.
+
+- **Simplify** — I had a lot going on. OLED, two motors, wires everywhere. I stripped it back to one motor to isolate the issue. Confirmed that removing the high signal wire consistently spun the motor. So it was a signal issue, specifically with the high signal.
+
+- **Multimeter back on the pin** — reading 3.3V high. Then the thought hit me: does the driver actually register 3.3V as high?
+
+- **Spec sheet** — "If using 5V logic supply: VIH ≈ 3.5V minimum. If using 3.3V logic supply: VIH ≈ 2.3V minimum." I was powering the driver logic supply with 5V. My STM32 high signal of 3.3V was below the 3.5V threshold. The driver wasn't reliably recognizing it as HIGH.
+
+- **Fix** — I dropped my buck converter output to 3.3V and powered both the STM32 and the driver logic supply from that rail. The driver accepts 3.3V to 6.5V on the logic supply pins despite the 5V label. With logic supply at 3.3V, minimum for HIGH now drops to 2.3V.
+
+**Wheels start spinning!**
+
+I was still curious why removing the GND and high wires had spun the motor earlier. My best guess is that removing those wires caused the driver input pins to float. The motor driver likely has internal pull-up resistors that pulled the floating inputs high, although I couldn't confirm this in the spec sheet. Either way, floating inputs producing unpredictable behavior is a good lesson in itself.
+
+This debug took me a few hours, and I basically discovered the issue accidently. My main takeaway is to reach for circuit component spec sheets earlier. 
