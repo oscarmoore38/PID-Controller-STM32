@@ -124,6 +124,8 @@ As mentioned above, I wanted to be more intentional about software design this t
 
 ![Design Diagram](Diagrams/PI-Controller%20Software%20Design.png)
 
+## Software Implementation
+
 ### Iteration 1 — Spin Motors with PWM
 I like to break my work into chunks and start with the simplest thing first. To me, that was just spinning both motors with PWM, not yet worrying about timing intervals, encoder signals, RPM calculation, PID math, or the display. Nothing here was too complicated. I initialized the peripherals I needed by enabling their clocks via the RCC peripheral, then set mode and state on each peripheral's appropriate registers. GPIO pins were straightforward. Enabling the timers for PWM mode was slightly more involved than my previous experience setting up a timer for intervals. Still used the prescaler to bring down the tick rate. Then ARR, which in the context of PWM determines the cycle length of the PWM signal (frequency), and CCR, which determines how long the signal stays high before going low. Together, these two produce the duty cycle. Simple enough, if ARR is 10 and CCR is 5, I'm producing a 50% duty cycle PWM signal.
 
