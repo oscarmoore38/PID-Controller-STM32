@@ -136,6 +136,7 @@ At first I thought the values in ARR and CCR could be arbitrary as long as they 
 - CCR of 499 gives me 50% duty cycle.
 
 One other thing I learned. TIM1 and TIM8 are advanced timers. Beyond basic setup, you need to enable the MOE bit in the BDTR register, which is a master output switch. Without it, output is disabled by default. I also had to enable CC1E for channel 1, the channel my timer is using. Without it, the PWM signal is generated internally but never routed to the physical pin.
+
 I like writing bare-metal. It's amazing how much more you learn. Beyond a basic understanding of PWM, I never had to think about any of this with analogWrite(). Arduino just handled it. My Arduino setup was roughly 15 lines of code for the entire project. I'm not even done with setup here and I'm already at 70+ lines.
 
 ### Iteration 1 — Debug
