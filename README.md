@@ -162,8 +162,28 @@ I wrote the code under the "Iteration 1 - spinning two motors with PWM" commit, 
 
 - **Fix** — I dropped my buck converter output to 3.3V and powered both the STM32 and the driver logic supply from that rail. The driver accepts 3.3V to 6.5V on the logic supply pins despite the 5V label. With logic supply at 3.3V, minimum for high now drops to 2.3V.
 
-**Wheels start spinning!**
+**Wheels started spinning!**
 
 I was still curious why removing the GND and high wires had spun the motor earlier. My best guess is that removing those wires caused the driver input pins to float. The motor driver likely has internal pull-up resistors that pulled the floating inputs high, although I couldn't confirm this in the spec sheet. Either way, floating inputs producing unpredictable behavior is a good lesson in itself.
 
 This debug took me a few hours, and I basically discovered the issue accidently. My main takeaway is to reach for circuit component spec sheets earlier. 
+
+### Iteration 2 - PID Logic 
+
+This was a fun iteration. I took my time with it, as, aside from just a life with children and a full-time job, I wanted to really learn about interrupts on bare-metal STM32. Back with my Arduino, it was as simple as defining my ISR in main, and passing it to attachinterrupts(), but, as with all things bare-metal: that was not the case here. I started by sketching out a rough diagram of the interrupt architecture with a pencil and paper. I'm talking very basic stuff: an timing event is happening here, when that happens, values need to be gather from my encoder Timers and sent to the main loop to be processed. I then created a rough list of tasks, and seperated it into what I knew, and my unknowns. If I wasn't sure how to do something, like setting interrupts, or how to configure an ISR to fire on one, for example, instead of writing a clear task, I would simply write the bahviour I wanted to see. So to start, the easier stuff I'd nailed down from previous iterations and tinkering -- bringing periphals online, setting AF mode for encoders by looking up the correct AF number in the datasheet, and confgurering a Timer for intervals. 
+
+First stop in my uknowns was how to actually configure my interval timer to fire an interrupt. I knew I wanted this to happen on an overflow event, or when the timer hit the value I'd defined in ARR. I also knew about setting bit 0 in the event generation register too, and that setting the UIF flag in SR register.I went to the reference manual RM0390 and looked at the list of registers fro my Timer. The first register that jumped out at me was the DIER register (Interrupt enable register). Jumping to taht seciton, I  found flipping bit 0 enables an interrupt to fire on an update event. Checkign back on EGR, I confimred setting bit O sets an update event for the Timer, but when you do that, including in setup, it re0tintailizes the counter and egenrates an update, setting the UIF bit. So I clear taht, before touching the DIER register to avoid an interrupt firing immedaitly. 
+
+Next up on the list was the big one, how do I configure the interrupts, so when an event happens, it calls my ISR? First up - reference manual, sectionn 10 on Interrupts and Events, which introduced me to two important controllers: the nested vecotred interrupt controller or NVIC, and the extenrl interrupt/event controller or EXTI. From my understanding, NVIC is a component of the actual core, and controls interrupts for the whole board, the EXTI, on the other hand, is the on-board controller that helps map pin chnages to interrupts signals, almost like a bridge between the some parts of the board and core. For EXTI, vector table 38 in seciont 10.2 gave me what I needed. It detailed out all the interrupt events EXTI supports, as well as thier priorty, and an acronym for each. I found the one I was looking for TIM1_BRK_TIM9, whichs is at positon 24 ont he table with a priorty of 31. A couple of things I started to think about at this stage: I'm using both TImer 1 and 9, although only 9 is configured to fire an interrupt. If both did, I suppose I'd have to start thinking about handling which Timer fired when the TIM1_BRK_TIM9 runs. I also learned about weak symbols, which in the context of these handlers basically means I can override them with my own defntion. To confirm this, I actually went and found the assembly file startup_stm32f446xx.s, and, it sure enough, you can see it's implemented with the .weak symbol. The other thing, which is a side note, but I've been networking with embedded enginees, and I'm really interested in bring-up work. I notived the reset handler was also deifnedd in EXTI's vecotr table. Qhich got me thinking: can I override this and do my own custom bring-up, more for the experience than anything else. Sure enough, the reset handler is defined as weak in the startup file: 
+
+   .section  .text.Reset_Handler
+  .weak  Reset_Handler
+  .type  Reset_Handler, %function
+Reset_Handler:  
+
+I think I'm going to attempt this once this project is done. 
+
+Ok, then for NVIC, I had to jump to the Porcessor Manual, PM0214, which detailed the number of interrupts NVIC supports, the prioity you can assing them, as well as a descrioption of it's regusters, to name a few. Section 4.3.1 gave me what I really needed though, which defines how to access the NVIC regusters via CMSIS, which you can do using NVIC_EnableIRQ() and passing it the approparte handler defined in EXTI, whjich I foiund in my CMSIS header file. 
+
+So combining the two, I overrode TIM1_BRK_TIM9, which became my ISR for an interval timer related to encodder counts, and I then told the processor to call taht using the CMSIS method defoined int he NVIC section of the PM0214 manual. 
+
