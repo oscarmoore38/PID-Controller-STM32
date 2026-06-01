@@ -168,22 +168,54 @@ I was still curious why removing the GND and high wires had spun the motor earli
 
 This debug took me a few hours, and I basically discovered the issue accidently. My main takeaway is to reach for circuit component spec sheets earlier. 
 
+---
+
 ### Iteration 2 - PID Logic 
 
-This was a fun iteration. I took my time with it, as, aside from just a life with children and a full-time job, I wanted to really learn about interrupts on bare-metal STM32. Back with my Arduino, it was as simple as defining my ISR in main, and passing it to attachinterrupts(), but, as with all things bare-metal: that was not the case here. I started by sketching out a rough diagram of the interrupt architecture with a pencil and paper. I'm talking very basic stuff: an timing event is happening here, when that happens, values need to be gather from my encoder Timers and sent to the main loop to be processed. I then created a rough list of tasks, and seperated it into what I knew, and my unknowns. If I wasn't sure how to do something, like setting interrupts, or how to configure an ISR to fire on one, for example, instead of writing a clear task, I would simply write the bahviour I wanted to see. So to start, the easier stuff I'd nailed down from previous iterations and tinkering -- bringing periphals online, setting AF mode for encoders by looking up the correct AF number in the datasheet, and confgurering a Timer for intervals. 
+This was a fun iteration. The core of it was configuring interrupts, setting up my ISR, and re-implementing my C++ classes -- PID, Motor -- in C. The biggest task being setting up an interrupt to fire on an event and call an ISR, so that will be the bulk of the focus in the below reflection. I took my time with it, as, aside from just a life with children and a full-time job, I wanted to really learn about interrupts on bare-metal STM32. Back with my Arduino, it was as simple as defining my ISR in main and passing it to attachInterrupt(), but as with all things bare-metal: that was not the case here. 
 
-First stop in my uknowns was how to actually configure my interval timer to fire an interrupt. I knew I wanted this to happen on an overflow event, or when the timer hit the value I'd defined in ARR. I also knew about setting bit 0 in the event generation register too, and that setting the UIF flag in SR register.I went to the reference manual RM0390 and looked at the list of registers fro my Timer. The first register that jumped out at me was the DIER register (Interrupt enable register). Jumping to taht seciton, I  found flipping bit 0 enables an interrupt to fire on an update event. Checkign back on EGR, I confimred setting bit O sets an update event for the Timer, but when you do that, including in setup, it re0tintailizes the counter and egenrates an update, setting the UIF bit. So I clear taht, before touching the DIER register to avoid an interrupt firing immedaitly. 
+I started by sketching out a rough diagram of the flow with a pencil and paper. I'm talking very basic stuff: a timing event is happening here, when that happens, values need to be gathered from my encoder timers and sent to the main loop to be processed. I then created a rough list of tasks, and separated it into what I knew and what I didn't. If I wasn't sure how to do something, instead of writing a clear task I would simply write the behaviour I wanted to see. I handled the easier stuff I'd nailed down from previous iterations and tinkering farily quickly; things like bringing peripherals online, setting AF mode for encoders by looking up the correct AF number in the datasheet, and configuring a timer for intervals, to name a few.
 
-Next up on the list was the big one, how do I configure the interrupts, so when an event happens, it calls my ISR? First up - reference manual, sectionn 10 on Interrupts and Events, which introduced me to two important controllers: the nested vecotred interrupt controller or NVIC, and the extenrl interrupt/event controller or EXTI. From my understanding, NVIC is a component of the actual core, and controls interrupts for the whole board, the EXTI, on the other hand, is the on-board controller that helps map pin chnages to interrupts signals, almost like a bridge between the some parts of the board and core. For EXTI, vector table 38 in seciont 10.2 gave me what I needed. It detailed out all the interrupt events EXTI supports, as well as thier priorty, and an acronym for each. I found the one I was looking for TIM1_BRK_TIM9, whichs is at positon 24 ont he table with a priorty of 31. A couple of things I started to think about at this stage: I'm using both TImer 1 and 9, although only 9 is configured to fire an interrupt. If both did, I suppose I'd have to start thinking about handling which Timer fired when the TIM1_BRK_TIM9 runs. I also learned about weak symbols, which in the context of these handlers basically means I can override them with my own defntion. To confirm this, I actually went and found the assembly file startup_stm32f446xx.s, and, it sure enough, you can see it's implemented with the .weak symbol. The other thing, which is a side note, but I've been networking with embedded enginees, and I'm really interested in bring-up work. I notived the reset handler was also deifnedd in EXTI's vecotr table. Qhich got me thinking: can I override this and do my own custom bring-up, more for the experience than anything else. Sure enough, the reset handler is defined as weak in the startup file: 
+#### Configuring an Interrupt
 
-   .section  .text.Reset_Handler
-  .weak  Reset_Handler
-  .type  Reset_Handler, %function
-Reset_Handler:  
+First stop in my unknowns was how to actually configure my interval timer to fire an interrupt. I knew I wanted this to happen on an overflow event, or when the timer hit the value I'd defined in ARR. I went to the reference manual RM0390 and looked at the list of registers for my timer. The first register that jumped out at me was the DIER register (interrupt enable register). Jumping to that section, I found flipping bit 0 (UIE) enables an interrupt to fire on an update event. Checking back on EGR, I confirmed setting bit 0 (UG) generates an update event for the timer, but when you do that -- including in setup -- it re-initializes the counter and sets the UIF flag in SR. So I clear that before touching the DIER register, to avoid an interrupt firing immediately.
+
+Next up on the list was the big one: how do I configure things so that when an event happens, it calls my ISR? First up -- reference manual, section 10 on Interrupts and Events, which introduced me to the NVIC (Nested Vectored Interrupt Controller), a component of the actual core that controls interrupts for the processor, and Table 38 in section 10.2, which is the vector table for the STM32F446xx. The vector table details all the supported interrupt events, their priority, and an acronym for each. I found the one I was looking for -- TIM1_BRK_TIM9, at position 24 with a priority of 31.
+A couple of things I started thinking about at this stage. I'm using both Timer 1 and 9, although only 9 is configured to fire an interrupt. If both did, I'd have to start thinking about handling which timer fired when TIM1_BRK_TIM9 runs. I also learned about weak symbols, which in the context of these handlers basically means I can override them with my own definition. To confirm this, I actually went and found the assembly file startup_stm32f446xx.s, and, sure enough, you can see it's implemented with the .weak symbol. 
+
+The other thing, which is a side note: I've been networking with embedded engineers and I'm really interested in bring-up work. I noticed the reset handler was also defined in the vector table, which is called before main() when the processor resets. Which got me thinking: can I override this and do my own custom bring-up, more for the experience than anything else? Sure enough, the reset handler is defined as weak in the startup file:
+
+```asm
+.section  .text.Reset_Handler
+.weak  Reset_Handler
+.type  Reset_Handler, %function
+Reset_Handler:
+```
 
 I think I'm going to attempt this once this project is done. 
 
-Ok, then for NVIC, I had to jump to the Porcessor Manual, PM0214, which detailed the number of interrupts NVIC supports, the prioity you can assing them, as well as a descrioption of it's regusters, to name a few. Section 4.3.1 gave me what I really needed though, which defines how to access the NVIC regusters via CMSIS, which you can do using NVIC_EnableIRQ() and passing it the approparte handler defined in EXTI, whjich I foiund in my CMSIS header file. 
+For NVIC itself, I jumped to the processor manual PM0214, which details the number of interrupts NVIC supports, the priority you can assign them, and a description of its registers. Section 4.3.1 gave me what I really needed -- it defines how to access the NVIC registers via CMSIS, which you can do using NVIC_EnableIRQ() and passing it the appropriate IRQ, which I found in my CMSIS header file.
 
-So combining the two, I overrode TIM1_BRK_TIM9, which became my ISR for an interval timer related to encodder counts, and I then told the processor to call taht using the CMSIS method defoined int he NVIC section of the PM0214 manual. 
+So combining the two: I overrode TIM1_BRK_TIM9_IRQHandler, which became my ISR for interval-based encoder reads, and then told the processor to call it using the CMSIS method defined in PM0214.
+
+#### Interrupt Architecture
+
+With that sorted, I mapped out the following flow:
+
+![ISR Diagram](Diagrams/Interrupt%20Architecture%20for%20Encoder%20Readings-2.png)
+
+Timers 2 and 5 run encoder counts, Timer 9 fires an interrupt on overflow, and my ISR captures the counts and passes them to main.
+
+Even with the architecture mapped out, I still had open questions:
+
+- What should my ISR actually capture?
+- ISRs should be light and non-blocking. So how does main know an interrupt fired and there's work to do?
+
+For the second one: I could poll TIM9's UIF flag via the SR register directly in main, but I wanted the signal main reacts to to come from the ISR, so I can be sure the data is ready when main acts on it. I created ISRFlags, which the ISR sets and main polls and resets.
+
+That led to my next question: doesn't polling make my timing non-deterministic? That's the whole reason I'm not just polling to begin with. But when I listed what actually needs to be deterministic, it came down to two things: my timing delta and my encoder counts.
+
+For timing, I don't think a delta approach is needed here. On the Arduino I was calculating interval duration manually inside loop(), so tracking elapsed time made sense. On the STM32, a dedicated timer is handling that job and firing the interrupt at a fixed interval, so the timing value is just a constant I define in code for the PID calculations to use. Sorted. For encoder counts, my ISR pulls them directly from Timers 2 and 5 using a delta approach, tracking the last known count and passing ```current - last``` to main.
+
+This means main is reacting to a flag rather than the interrupt itself, which may introduce a little jitter. It might act at 82ms instead of 80ms. That said, I wasn't doing anything fundamentally different on the Arduino. I was polling millis() in loop() and waiting for the interval to elapse, and that worked fine. I think the same applies here. If this were a true industrial automation project with tight control requirements it might not be acceptable, but, for a personal project, I think it's ok. Everything that actually drives RPM calculation and PID output is captured deterministically in the ISR. Main just does the math whenever it sees the flag.
 
