@@ -214,7 +214,7 @@ Timers 2 and 5 run encoder counts, Timer 9 fires an interrupt on overflow, and m
 
 Even with the architecture mapped out, I still had open questions:
 
-- ISRs should be light and non-blocking, so what should my ISR actually capture?
+- ISRs should be light and non-blocking, so what should my ISR actually do?
 - How does main know an interrupt fired and there's work to do?
 
 For the second one: I could poll TIM9's UIF flag via the SR register directly in main, but I wanted the signal main reacts to to come from the ISR, so I can be sure the data is ready when main acts on it. I created ISRFlags, which the ISR sets, then main polls and resets.
