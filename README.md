@@ -225,3 +225,26 @@ For timing, I don't think a delta approach I was doing on my Arduino is needed h
 
 I do want to acknowledge that main polling a flag may introduce a little jitter. It might, for example, act at 82ms instead of 80ms. That said, I wasn't doing anything fundamentally different on the Arduino. I was calculating timing intervals with millis(), polling them in loop(), and waiting for the interval to elapse, and that worked fine. I think the same applies here. If this were a true industrial automation project with tight control requirements it might not be acceptable. But for a personal project, I think it's ok. Everything that actually drives RPM calculation and PID output is captured deterministically in the ISR. Main just does the math with those values, whenever it sees the flag.
 
+### Iteration 2 - Debug 
+
+This was an interesting one, as I believe I encountered my first Heisenbug. I'm not sure if it's some kind of embedded rite of passage, but it definitely left me stumped for a while.
+
+For context: I had set up an interrupt on my interval timer, Timer 9, and defined my ISR. Before building out the PID logic, I wanted to confirm the ISR was being called and the flags were set correctly, ao I built a small program in main to blink the LED based on the value of the ISR flag. I set breakpoints inside the ISR, built, and flashed. A strange thing happened though. The first overflow event would fire, the ISR was correctly called, execution halted at my breakpoint -- but as I stepped through, the program would just hang. Nothing would happen.
+
+My first instinct was that I'd missed something in peripheral setup, so I carefully walked back through my configuration and cross-referenced with the reference manual. Everything looked correct. I then pulled up the peripherals pane in the debugger. Timer 9's ARR had the value I'd set, UIE was set in DIER, and the UIF bit was set in SR. My breakpoint was inside the ISR itself, so the interrupt was clearly firing. The registers were correct, the overflow was happening, the ISR was being called -- so what gives?
+
+Before digging further, I just wanted to see what would happen if I just flashed and ran without the debugger.
+
+It worked just fine. What the...?
+
+I started looking into whether the debugger itself could be causing the issue, and fell into the world of Heisenbugs. A Heisenbug is a bug caused when attempting to observe something changes its state -- and sure enough, that seemed to be exactly what was happening here.
+But why? I went back to the reference manual and found this: 
+
+> 18.3.13 Debug mode
+When the microcontroller enters debug mode (Cortex®-M4 with FPU core halted), the TIMx
+counter either continues to work normally or stops, depending on DBG_TIMx_STOP
+configuration bit in DBG module. 
+
+I'd completely overlooked this. My best guess here is that halting the CPU with the software debugger without setting DBG_TIM9_STOP had left Timer 9 continuing to count and overflow. The CPU wasn't there to service the interrupts, though, which caused the program to appear to hang.
+
+The lesson for me: think about how peripherals should behave during a debug session, and configure the registers in the MCU debug component (DBGMCU) accordingly.
