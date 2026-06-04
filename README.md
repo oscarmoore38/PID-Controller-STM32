@@ -227,6 +227,8 @@ I do want to acknowledge that main polling a flag may introduce a little jitter.
 
 ### Iteration 2 - Debug 
 
+#### The Heisenbug
+
 This was an interesting one, as I believe I encountered my first Heisenbug. I'm not sure if it's some kind of embedded rite of passage, but it definitely left me stumped for a while.
 
 For context: I had set up an interrupt on my interval timer, Timer 9, and defined my ISR. Before building out the PID logic, I wanted to confirm the ISR was being called and the flags were set correctly, ao I built a small program in main to blink the LED based on the value of the ISR flag. I set breakpoints inside the ISR, built, flashed, and started my debugger. A strange thing happened though. The first overflow event would fire, the ISR was correctly called, execution halted at my breakpoint -- but as I stepped through, the program would just hang. Nothing would happen.
@@ -248,3 +250,33 @@ configuration bit in DBG module.
 I'd completely overlooked this. My best guess here is that halting the CPU with the software debugger without setting DBG_TIM9_STOP had left Timer 9 continuing to count and overflow. The CPU wasn't there to service the interrupts, though, which caused the program to appear to hang.
 
 The lesson for me: think about how peripherals should behave during a debug session, and configure the registers in the MCU debug component (DBGMCU) accordingly.
+
+#### One Wheel Not Spinning
+
+After building out main, motor objects, RPM math, and PI logic, I flashed it and only one motor spun. The other jerked, stopped, and whined like it was trying to start. Checklist:
+
+- **Connections** — wired correctly, on the right pins. As I had one wheel spinning, my gut said to check software first.
+
+- **Debugger** — set a breakpoint at startup. Motors initialize fine, hardware_setup() runs, both started to spin. This told me my PWM config and motor wiring were probably good, so I moved to the control loop.
+
+- **Tracing** — stepped through to SetPWM() for motor 2, and it shuts off. The PWM value comes from the PI logic, which uses RPM, which comes from encoder counts. So the problem must be there, in the encoder data.
+
+- **ISR** — Set a breakpoint and checked Timer 2. It isn't incrementing. At all.
+
+- **Hardware check** —  I then suspected a dead encoder, so I hooked the encoder for motor 2 to Timer 5. Counted fine. So if the encoder is good, then something's interfering with Timer 2.
+
+- **Isolate to pins** — config correct, motor good, encoder good, but the timer gets no signals. Started suspecting the pins.
+
+- **Datasheet** — found alternate Timer 2 pins, PB8/PB9.
+
+- **Fix** — Same AF code, easy swap/setup. Flashed, encoder started counting.
+
+**Both wheels spinning!**
+
+So remember when I said this:
+
+> "So the green LED will probably blink while my circuit is running, but nothing detrimental should happen as far as I can tell at this stage."
+
+Well, I was wrong. Both of the original pins for Timer 2 are shared with board functions: PA5 drives the onboard LED (LD2), and PB3 carries the ST-Link's JTDO/TRACESWO line. Although I'm still not sure why, my best guess is this interfered with the Timer's ability to read the encoder signals. Powering the encoder at 3.3V may not have helped either.
+
+My main takeaway is to just avoid reserved or already-used pins when mapping, unless absolutely required. 
