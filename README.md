@@ -229,11 +229,11 @@ I do want to acknowledge that main polling a flag may introduce a little jitter.
 
 This was an interesting one, as I believe I encountered my first Heisenbug. I'm not sure if it's some kind of embedded rite of passage, but it definitely left me stumped for a while.
 
-For context: I had set up an interrupt on my interval timer, Timer 9, and defined my ISR. Before building out the PID logic, I wanted to confirm the ISR was being called and the flags were set correctly, ao I built a small program in main to blink the LED based on the value of the ISR flag. I set breakpoints inside the ISR, built, and flashed. A strange thing happened though. The first overflow event would fire, the ISR was correctly called, execution halted at my breakpoint -- but as I stepped through, the program would just hang. Nothing would happen.
+For context: I had set up an interrupt on my interval timer, Timer 9, and defined my ISR. Before building out the PID logic, I wanted to confirm the ISR was being called and the flags were set correctly, ao I built a small program in main to blink the LED based on the value of the ISR flag. I set breakpoints inside the ISR, built, flashed, and started my debugger. A strange thing happened though. The first overflow event would fire, the ISR was correctly called, execution halted at my breakpoint -- but as I stepped through, the program would just hang. Nothing would happen.
 
-My first instinct was that I'd missed something in peripheral setup, so I carefully walked back through my configuration and cross-referenced with the reference manual. Everything looked correct. I then pulled up the peripherals pane in the debugger. Timer 9's ARR had the value I'd set, UIE was set in DIER, and the UIF bit was set in SR. My breakpoint was inside the ISR itself, so the interrupt was clearly firing. The registers were correct, the overflow was happening, the ISR was being called -- so what gives?
+My first instinct was that I'd missed something in peripheral setup, so I carefully walked back through my configuration and cross-referenced with the reference manual. Everything looked correct. I then inspected the peripherals pane in the debugger. Timer 9's ARR had the value I'd set, UIE was set in DIER, and the UIF bit was set in SR. My breakpoint was inside the ISR itself, so the interrupt was clearly firing. The registers were correct, the overflow was happening, the ISR was being called -- so what gives?
 
-Before digging further, I just wanted to see what would happen if I just flashed and ran without the debugger.
+Before digging further, I wanted to see what would happen if I just ran without the debugger.
 
 It worked just fine. What the...?
 
