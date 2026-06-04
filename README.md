@@ -221,7 +221,7 @@ For the second one: I could poll TIM9's UIF flag via the SR register directly in
 
 That led to my next question: doesn't polling the ISRFlags make my timing non-deterministic? I started to think about what actually needs to be determinsitc in my program. It came down to two things: timing and encoder counts.
 
-For timing, I don't think a delta approach I was doing on my Arduino is needed here. On the Arduino I was calculating interval duration manually inside loop(), so tracking elapsed time made sense. On the STM32, a dedicated timer is handling that job and firing the interrupt at an exact fixed interval, so instead, I just defined a global fixed timing variable, ```uint8_t TimeDT```, in my main file for the PID calculations to use. For encoder counts, my ISR pulls them directly from Timers 2 and 5 using a delta approach, tracking the last known count and passing ```current - last``` to main.
+For timing, I don't think a delta approach I was doing on my Arduino is needed here. On the Arduino I was calculating interval duration manually inside loop(), so tracking elapsed time made sense. On the STM32, a dedicated timer is handling that job and firing the interrupt at an exact fixed interval, so instead, I just defined a global fixed timing variable, ```float TimeDTSec```, in my main file for the PID calculations. For encoder counts, my ISR pulls them directly from Timers 2 and 5 using a delta approach, tracking the last known count and passing ```current - last``` to main.
 
 I do want to acknowledge that main polling a flag may introduce a little jitter. It might, for example, act at 82ms instead of 80ms. That said, I wasn't doing anything fundamentally different on the Arduino. I was calculating timing intervals with millis(), polling them in loop(), and waiting for the interval to elapse, and that worked fine. I think the same applies here. If this were a true industrial automation project with tight control requirements it might not be acceptable. But for a personal project, I think it's ok. Everything that actually drives RPM calculation and PID output is captured deterministically in the ISR. Main just does the math with those values, whenever it sees the flag.
 
@@ -233,7 +233,7 @@ For context: I had set up an interrupt on my interval timer, Timer 9, and define
 
 My first instinct was that I'd missed something in peripheral setup, so I carefully walked back through my configuration and cross-referenced with the reference manual. Everything looked correct. I then inspected the peripherals pane in the debugger. Timer 9's ARR had the value I'd set, UIE was set in DIER, and the UIF bit was set in SR. My breakpoint was inside the ISR itself, so the interrupt was clearly firing. The registers were correct, the overflow was happening, the ISR was being called -- so what gives?
 
-Before digging further, I wanted to see what would happen if I just ran without the debugger.
+Before digging further, I just wanted to see what would happen if I ran without the debugger.
 
 It worked just fine. What the...?
 
