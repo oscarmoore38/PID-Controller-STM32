@@ -257,21 +257,21 @@ After building out main, motor objects, RPM math, and PI logic, I flashed it and
 
 - **Connections** — wired correctly, on the right pins. As I had one wheel spinning, my gut said to check software first.
 
-- **Debugger** — set a breakpoint at startup. Motors initialize fine, hardware_setup() runs, both started to spin. This told me my PWM config and motor wiring were probably good, so I moved to the control loop.
+- **Debugger** — set a breakpoint at startup. Motors initialize fine, hardware_setup() runs, both started to spin. This told me my hardware config (excluding timers) and motor wiring were probably good, so I moved to the control loop.
 
 - **Tracing** — stepped through to SetPWM() for motor 2, and it shuts off. The PWM value comes from the PI logic, which uses RPM, which comes from encoder counts. So the problem must be there, in the encoder data.
 
 - **ISR** — Set a breakpoint and checked Timer 2. It isn't incrementing. At all.
 
-- **Hardware check** —  I then suspected a dead encoder, so I hooked the encoder for motor 2 to Timer 5. Counted fine. So if the encoder is good, then something's interfering with Timer 2.
+- **Hardware check** — Given my setup for Timer 2 was identical to Timer 5, which was working, I then suspected a dead encoder. To test this, I hooked the encoder for motor 2 to Timer 5. It counted fine. So if the encoder is good, then something's interfering with Timer 2.
 
 - **Isolate to pins** — config correct, motor good, encoder good, but the timer gets no signals. Started suspecting the pins.
 
 - **Datasheet** — found alternate Timer 2 pins, PB8/PB9.
 
-- **Fix** — Same AF code, easy swap/setup. Flashed, encoder started counting.
+- **Fix** — Same AF code, easy swap/setup. Flashed, Timer started counting.
 
-**Both wheels spinning!**
+**Both wheels now spinning!**
 
 So remember when I said this:
 
