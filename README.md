@@ -281,21 +281,15 @@ Well, I was wrong. Both of the original pins for Timer 2 are shared with board f
 
 My main takeaway is to just avoid reserved or already-used pins when mapping, unless absolutely required. 
 
+---
+
 ### Iteration 3 - Display: I2C to USART
 
-The final iteration of this project was getting some kind of display output for my motor values. That was really all I wanted from the display, nothing fancy.
-
-At first, I planned to reuse the OLED from my Arduino project by implementing my own I2C driver. Why did I switch to UART instead? Although I did get the driver and peripheral setup partially working, I realized that without the Adafruit library, coordinating and managing an OLED in a non-blocking way was going to get complex fast. I looked through a few examples and, if I’m being honest, it was beyond my current skill level.
-
-Sure, I could have leaned on AI, gotten something working, and passed it off as my own, but I have no interest in doing that. So instead, I switched to the much simpler UART approach. The goal here is just observability of the motors. UART serves that purpose perfectly. It’s simpler, lighter, and faster than driving an OLED for this use case.
-
-I’ll still include a bit of the I2C work below, and I’ve also included my setup code in I2C_Code.txt in case you want to see how far I got.
+The final iteration of this project was getting some kind of display output for my motor values. That was really all I wanted from the display, nothing fancy. At first, I planned to reuse the OLED from my Arduino project by implementing my own I2C driver. Why did I switch to UART instead? Although I did get the driver and peripheral setup partially working, I realized that without the Adafruit library, coordinating and managing an OLED in a non-blocking way was going to get complex fast. I looked through a few examples and, if I’m being honest, it was beyond my  skill level. Sure, I could have leaned on AI, gotten something working, and passed it off as my own, but I have no interest in doing that. So instead, I switched to the much simpler UART approach. The goal here is just observability of the motors. UART serves that purpose perfectly. It’s simpler, lighter, and faster than driving an OLED for this use case. I’ll still include a bit of the I2C work below, and I’ve also included my setup code in I2C_Code.txt in case you want to see how far I got.
 
 #### I2C
 
-It just so happened I was reading about state machines when I reached this iteration. I chose a state-centric approach with guard statements, as that seemed like the most natural fit for my specific case. The book also covered table-driven state machines, but if I’m being honest, that felt above my current skill level and unnecessary here.
-
-To start, I mapped what I believed were the core states of the I2C protocol and added arrows between them to show the transitions. This would later guide the guard conditions in each block.
+It just so happened I was reading about state machines when I reached this iteration. I chose a state-centric approach with guard statements, as that seemed like the most natural fit for my specific case. The book also covered table-driven state machines, but if I’m being honest, that felt above my current skill level and unnecessary here. To start, I mapped what I believed were the core states of the I2C driver and added arrows between them to show the transitions. This would later guide the guard conditions in each block.
 
 ![I2C Diagram](Diagrams/State%20Machine%20Flowchart-3.png)
 
@@ -303,24 +297,17 @@ From there, using the reference manual along with the I2C protocol documentation
 
 #### USART
 
-The goal was to get the RPM values from my STM32 board and print them in the terminal in VS Code, and USART seemed like the right tool for the job.
+The goal was to get the RPM values from my STM32 board and print them in the terminal in VS Code, and USART seemed like the right tool for the job. I saw both USART and UART used in the documentation. My understanding is that a USART peripheral can support both synchronous and asynchronous communication, while UART refers specifically to asynchronous communication. For talking to my computer through the virtual COM port, I used the asynchronous mode. Conceptually, it seemed fairly simple: both sides must agree on the baud rate, the transmitter sends a start bit, then the data bits, and then a stop bit. That repeats for each byte.
 
-I saw both USART and UART used in the documentation. My understanding is that a USART peripheral can support both synchronous and asynchronous communication, while UART refers specifically to asynchronous communication. For talking to my computer through the virtual COM port, I’m using the asynchronous mode.
+I always take the same approach when starting with a new peripheral: user manual, datasheet, reference manual. The STM32 actually provides six serial interfaces to choose from, and I picked USART2 for the following reason from the user manual:
 
-Conceptually, it seemed fairly simple: both sides must agree on the baud rate, the transmitter sends a start bit, then the data bits, and then a stop bit. That repeats for each byte.
+> By default, the USART2 communication between the target STM32 and ST-LINK MCU is enabled, to support virtual COM port
 
-I always take the same approach when starting with a new peripheral: user manual, datasheet, reference manual. The STM32 actually gives me six serial interfaces to choose from, and I picked USART2 for the following reason from the user manual:
-
-By default, the USART2 communication between the target STM32 and ST-LINK MCU is enabled, to support virtual COM port
 That made it the obvious choice. It’s the interface connected by default to the onboard ST-LINK MCU, which I can then connect to my computer over USB.
 
-For setup, the user manual gave me the pins: PA2 for TX and PA3 for RX. From there, it was similar to the rest of my peripheral setup work: enable the RCC clock, configure the GPIO pins for alternate function mode, and set them to AF7. Compared with some of the other peripherals, USART was a bit simpler because there’s no separate clock line to worry about.
+For setup, the user manual gave me the pins: PA2 for TX and PA3 for RX. From there, it was similar to the rest of my peripheral setup work: enable the RCC clock, configure the GPIO pins for alternate function mode, and set them to AF7. Compared with I2C, UART was a  simpler because there’s no separate clock line to worry about. The main piece of math was the BRR register, which is based on the input clock, 16 MHz in my case, and the baud rate, which must match on both sides of the connection.
 
-The main piece of math was the BRR register, which is based on the input clock, 16 MHz in my case, and the baud rate, which must match on both sides of the connection.
-
-At that point I knew the pins were configured for serial communication and connected to the onboard debugger. The main question left was how to actually capture my RPM values and feed them into USART2’s data register.
-
-While scrolling through the USART registers in the reference manual, I found the TXE bit in the status register. That bit is set by hardware when the contents of the data register have been transferred into the shift register, meaning the data register is empty and ready for the next byte. In the bit description I also found TXEIE in CR1, which enables an interrupt when that condition occurs.
+At this point, I knew the pins were configured for serial communication and connected to the onboard debugger. The main question left was how to actually capture my RPM values and feed them into USART2’s data register. While scrolling through the USART registers in the reference manual, I found the TXE bit in the status register. That bit is set by hardware when the contents of the data register have been transferred into the shift register, meaning the data register is empty and ready for the next byte. In the bit description I also found TXEIE in CR1, which enables an interrupt when that condition occurs. 
 
 I already had my display conditional set up, so the flow ended up being fairly straightforward:
 
@@ -332,14 +319,12 @@ I already had my display conditional set up, so the flow ended up being fairly s
 - Bytes are written from the buffer into the data register until the null terminator is reached
 - TXEIE is cleared to stop further transmit interrupts
 
-Because my display interval is relatively large at 500 ms, I don’t have to worry about USART still
-transmitting when the next display interval fires. And since the transfer is interrupt-driven, the approach is non-blocking with respect to my PI loop.
+Because my display interval is relatively large at 500 ms, I don’t have to worry about USART still transmitting when the next display interval fires. And since the transfer is interrupt-driven, the approach is non-blocking with respect to my PI loop.
 
 Iteration 3 - Debug
 
-The first time I flashed the code, I opened my terminal and got somewhat garbled output. It looked something like this:
+The first time I flashed the code, I opened my terminal and got garbled output. It looked something like this:
 
-> 1 5 2 3RM
 > M:10|M:7 P
 
 It contained values I was expecting, but the output looked cut off and inconsistent. It was also different each time. The fact that data was making it to my computer told me the basic setup was probably correct. That made me think this was less likely to be a hardware issue, such as pin conflicts, and more likely a software issue. I was fairly confident the problem wasn’t in the main block. That logic is straightforward, and I’m giving USART more than enough time to finish transmitting before another display interval fires. So I jumped to the ISR and found my mistake. I didn’t have a guard condition ensuring the data register was actually ready before writing the next byte. At 16 MHz, the processor is moving much faster than the serial line. So before USART had finished processing one byte and moving it out over the wire, the CPU was already trying to write the next one, overwriting data before the peripheral was ready. Once I forced the processor to check that the transmit register was ready before writing the next byte, the problem went away and the output looked as expected.
