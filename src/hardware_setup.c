@@ -11,6 +11,7 @@ volatile int32_t PulseCountAllTim2 = 0;
 volatile int32_t PulseCountAllTim5 = 0; 
 volatile uint8_t DirectionFlagMotor1 = 0; 
 volatile uint8_t DirectionFlagMotor2 = 0; 
+volatile uint8_t ISRFlagDisplay = 0; 
 int32_t LastPulseCountTim2 = 0; 
 int32_t LastPulseCountTim5 = 0; 
 
@@ -29,6 +30,12 @@ void TIM1_BRK_TIM9_IRQHandler(void){
     TIM9->SR &= ~(TIM_SR_UIF_Msk);
 }
 
+void TIM8_BRK_TIM12_IRQHandler(void){
+    ISRFlagDisplay = 1; 
+    TIM12->SR &= ~(TIM_SR_UIF_Msk);
+}
+
+// Setup
 void hardware_setup(void){
     // ENABLE CLOCKS 
 
@@ -45,12 +52,49 @@ void hardware_setup(void){
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOBEN_Msk;
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN_Msk;
 
-    // I2C
-    RCC->APB1ENR |= RCC_APB1ENR_I2C1EN_Msk;
+    // USART 
+    RCC->APB1ENR |= RCC_APB1ENR_USART2EN_Msk;
 
     // SET MODE AND STATE  
 
-    // GPIO pins for motor driver - general output mode
+    // GPIO pins for UART - PA2, PA3 (AF Mode)
+    GPIOA->MODER &= ~(GPIO_MODER_MODER2_Msk);
+    GPIOA->MODER &= ~(GPIO_MODER_MODER3_Msk);
+
+    GPIOA->MODER |= GPIO_MODER_MODER2_1;
+    GPIOA->MODER |= GPIO_MODER_MODER3_1; 
+
+    GPIOA->OSPEEDR &= ~(GPIO_OSPEEDR_OSPEED2_Msk);
+    GPIOA->OSPEEDR &= ~(GPIO_OSPEEDR_OSPEED3_Msk);
+
+    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED2_1);
+    GPIOA->OSPEEDR |= (GPIO_OSPEEDR_OSPEED3_1);
+
+    // Set pull up on RX
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPD3_Msk); 
+    GPIOA->PUPDR |= GPIO_PUPDR_PUPD3_0;
+
+    // Set AF Mode for UART pins - AF7
+    GPIOA->AFR[0] &= ~(GPIO_AFRL_AFSEL2_Msk); 
+    GPIOA->AFR[0] &= ~(GPIO_AFRL_AFSEL3_Msk); 
+
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL2_0;
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL2_1; 
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL2_2;
+
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL3_0;
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL3_1;
+    GPIOA->AFR[0] |= GPIO_AFRL_AFRL3_2;
+
+    // Perhipal enable
+    USART2->CR1 |= USART_CR1_TE; 
+    USART2->CR1 |= USART_CR1_UE; 
+    uint16_t uartDiv = HSI_CLOCK_SPEED/BAUD_RATE;
+    USART2->BRR = uartDiv;
+;
+    NVIC_EnableIRQ(USART2_IRQn); 
+
+    // GPIO pins for motor driver - general output mode PC0 --> PC3
     GPIOC->MODER &= ~(GPIO_MODER_MODER0_Msk);
     GPIOC->MODER &= ~(GPIO_MODER_MODER1_Msk);
     GPIOC->MODER &= ~(GPIO_MODER_MODER2_Msk);
@@ -110,7 +154,6 @@ void hardware_setup(void){
     GPIOC->AFR[0] |= GPIO_AFRL_AFRL6_0; // AF3
     GPIOC->AFR[0] |= GPIO_AFRL_AFRL6_1; 
     GPIOA->AFR[1] |= GPIO_AFRH_AFSEL8_0; // AF1
-
 
     // PWM Timers 1/8 CH1
     TIM1->CCMR1 &= ~(TIM_CCMR1_OC1M_Msk);
@@ -182,6 +225,18 @@ void hardware_setup(void){
     TIM5->SMCR |= TIM_SMCR_SMS_0; // Count on TI1 & TI2, SMS=011
     TIM5->SMCR |= TIM_SMCR_SMS_1;
     TIM5->CR1 |= TIM_CR1_CEN_Msk;
+
+    // Display Timer
+    TIM12->ARR = TIMER_DISPLAY_INTERVAL;
+    TIM12->PSC = TIMER_PRESCALER_VALUE;
+    TIM12->CNT = 0; 
+    TIM12->EGR |= TIM_EGR_UG_Msk;
+    TIM12->SR &= ~(TIM_SR_UIF_Msk);
+    TIM12->DIER |= TIM_DIER_UIE_Msk;
+    TIM12->CR1 |= TIM_CR1_CEN_Msk;
+
+    // Set processor to listen for Tim12 overflow event
+    NVIC_EnableIRQ(TIM8_BRK_TIM12_IRQn);
 
 }
 
