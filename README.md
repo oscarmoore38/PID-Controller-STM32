@@ -11,7 +11,7 @@ With that said, here's what I want from this project:
 
 ### 1. Go Deeper With the Hardware
 
-I've started to notice something. I'm reading embedded systems books in my own time, spending evenings and weekends just digging into how things actually work at the hardware level, and I'm genuinely enjoying it. This kind of pull tells me something about where I wanted to go: closer to the hardware, down not up, below the HALs to what's actually happening. Arduino was a great entry point. It let me understand important concepts and get a circuit running quickly. But it also abstracts away a lot of the details I actually want to wrestle with, and often left me feeling "but how does that actually work?" I want to be trawling through datasheets and manuals, scratching my head trying to figure out what on earth is going on at the hardware level. That may sound strange to some, but I genuinely love that state. Also, my goal with this project isn't just to learn, but to simulate what I may actually face as an embedded engineer: here's a board you've never touched, here's the datasheet and manuals, go figure it out and get something built. I'm trying to get comfortable in that space. To accomplish this goal, I'm upgrading my circuit with an STM32 board, which is a technical jump. More discussion on the specfic one I chose, and why, later. 
+I've started to notice something. I'm reading embedded systems books in my own time, spending evenings and weekends just digging into how things actually work at the hardware level, and I'm genuinely enjoying it. This kind of pull tells me something about where I wanted to go: closer to the hardware, down not up, below the HALs to what's actually happening. Arduino was a great entry point. It let me understand important concepts and get a circuit running quickly. But it also abstracts away a lot of the details I actually want to wrestle with, and often left me feeling "but how does that actually work?" I want to be trawling through datasheets and manuals, scratching my head trying to figure out what on earth is going on at the hardware level. That may sound strange to some, but I genuinely love that state. Also, my goal with this project isn't just to learn, but to simulate what I may actually face as an embedded engineer: here's a board you've never touched, here's the datasheet and manuals, go figure it out and get something built. I'm trying to get comfortable in that space. To accomplish this goal, I'm upgrading my circuit with an STM32 board, which is a technical jump. More discussion on the specific one I chose, and why, later. 
 
 ---
 
@@ -166,7 +166,7 @@ I wrote the code under the "Iteration 1 - spinning two motors with PWM" commit, 
 
 I was still curious why removing the GND and high wires had spun the motor earlier. My best guess is that removing those wires caused the driver input pins to float. The motor driver likely has internal pull-up resistors that pulled the floating inputs high, although I couldn't confirm this in the spec sheet. Either way, floating inputs producing unpredictable behavior is a good lesson in itself.
 
-This debug took me a few hours, and I basically discovered the issue accidently. My main takeaway is to reach for circuit component spec sheets earlier. 
+This debug took me a few hours, and I basically discovered the issue accidentally. My main takeaway is to reach for circuit component spec sheets earlier. 
 
 ---
 
@@ -328,3 +328,42 @@ The first time I flashed the code, I opened my terminal and got garbled output. 
 > M:10|M:7 P
 
 It contained values I was expecting, but the output looked cut off and inconsistent. It was also different each time. The fact that data was making it to my computer told me the basic setup was probably correct. That made me think this was less likely to be a hardware issue, such as pin conflicts, and more likely a software issue. I was fairly confident the problem wasn’t in the main block. That logic is straightforward, and I’m giving USART more than enough time to finish transmitting before another display interval fires. So I jumped to the ISR and found my mistake. I didn’t have a guard condition ensuring the data register was actually ready before writing the next byte. At 16 MHz, the processor is moving much faster than the serial line. So before USART had finished processing one byte and moving it out over the wire, the CPU was already trying to write the next one, overwriting data before the peripheral was ready. Once I forced the processor to check that the transmit register was ready before writing the next byte, the problem went away and the output looked as expected.
+
+---
+
+#### How do I use AI? 
+I've been networking with a number of embedded engineers, and I keep getting this question. It makes sense—AI is everywhere in engineering teams now, and it'll probably come up in interviews too. So here's a quick section on my philosophy.
+
+I'm self-taught, and in isolation at that. I couldn't do internships during my CS degree as I went to school at night while working full-time and supporting my family, including young kids. So all my embedded experience comes from curiosity. I discovered it about eight months ago, bought some hardware and a couple of books, and started playing around. AI has been critical in helping me ramp up quickly. I treat it like a mentor or tutor. Is it always correct? No. As correct as a TA was at my school? Probably. And in both cases, did I check what I was told against the actual reference manuals? One hundred percent.
+
+I also have firm "lines in the sand" for what I let it do:
+
+- **No code for core project work, and no thinking on my behalf**. I'm a rubber-duck programmer—I love to think out loud. I'll talk through my thoughts with AI in real time, but it can't hand me answers. It can only clarify my thinking and surface things I might be missing—always at a high level.
+
+- **Code only where I don't care about proficiency.** In my Arduino project, I used it to write a Python logging script. But all the bare-metal C and C++ in my projects was written and designed by me. I always make it clear when I didn't author the code.
+
+- **Code reviews, where it plays a senior engineer.** I instruct it never to give me revised code—only to push on my thinking with open-ended questions, like a professor would. One day (hopefully) I'll be doing these for real, and I want the practice.
+
+- **Research.** I don't trust all its output, but it can surface an obscure protocol manual far faster than I could. And when a manual gets too dense, I'll have it simplify the language, then go back and re-read the original with that context in mind.
+
+That's about it. I use AI as a mentor and tutor -- rarely for code -- unless it's a language I'm not focused on growing (Python, JavaScript, etc.). Aside from that, I'm a brand-new engineer. I need the reps. I need to trudge through manuals, write C/C++, think through hard problems, learn design patterns, make mistakes, and defend my positions. Again and again and again. To cheat myself of that is to cheat myself of this craft we call engineering. And if I did, what was the point of all those late nights earning my degree?
+
+**Bottom line: AI is a useful tool, but it's dangerous for entry-level engineers if used incorrectly.**
+
+---
+
+### Reflections — Bare-metal, RTOS, and What's Next
+
+I came into this project with no bare-metal experience and didn't know what to expect. My motivation was mostly curiosity. The verdict? I love it. I started this PI project with an Arduino while targeting robotics roles, but now I'm drawn to working with hardware more broadly. There's still plenty left to explore, but I genuinely enjoyed configuring, testing, and debugging it.
+
+If you made it this far, you might be wondering: where's the RTOS? I've been networking extensively with embedded engineers to understand their work and how my projects translate to industry. Nearly all of them said the same thing:
+
+> Most commercial embedded work is Linux.
+
+I could cap this project off with RTOS, but between work, kids, and life, my engineering hours are extremely limited; I have to be intentional about what I learn. I'm not saying no to RTOS; maybe I'll return to it down the road. For now, I'm jumping into Linux. Which leads to what's next.
+
+For the third and final iteration of this project, I want to add a Raspberry Pi to the circuit and a sensor on one of the wheels, probably an IMU. Then I'll write a custom Linux kernel driver to collect data from that sensor and confirm the RPM reading against my STM32 board running the control loop. The details aren't fully mapped out yet, but this should give me real exposure to Linux and a better taste of what many embedded engineers do day-to-day.
+
+If you're following along, head over to the final installment of this PI-controlled loop, where we'll dig into all things Linux.
+
+Cheers!
