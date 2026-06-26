@@ -111,6 +111,7 @@ With timers selected, I first picked arbitrary channels within these timers, fig
 - PB8 — SCL
 - PB9 — SDA
 
+
 ## Software Design
 
 ### Tooling and Development Environment
@@ -321,7 +322,7 @@ I already had my display conditional set up, so the flow ended up being fairly s
 
 Because my display interval is relatively large at 500 ms, I don’t have to worry about USART still transmitting when the next display interval fires. And since the transfer is interrupt-driven, the approach is non-blocking with respect to my PI loop.
 
-Iteration 3 - Debug
+### Iteration 3 - Debug
 
 The first time I flashed the code, I opened my terminal and got garbled output. It looked something like this:
 
