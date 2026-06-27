@@ -39,7 +39,7 @@ I also have firm "lines in the sand" for what I let it do:
 
 - **Code reviews, where it plays a senior engineer.** I instruct it never to give me revised code—only to push on my thinking with open-ended questions, like a professor would. One day (hopefully) I'll be doing these for real, and I want the practice.
 
-- **Research.** I don't trust all its output, but it can surface an obscure protocol manual far faster than I could. And when a manual gets too dense, I'll have it simplify the language, then go back and re-read the original with that context in mind.
+- **Research.** I don't trust all its output, but it can surface an obscure manual far faster than I could. And when a manual gets too dense, I'll have it simplify the language, then go back and re-read the original with that context in mind.
 
 That's about it. I use AI as a mentor and tutor -- rarely for code -- unless it's a language I'm not focused on growing (Python, JavaScript, etc.). Aside from that, I'm a brand-new engineer. I need the reps. I need to trudge through manuals, write C/C++, think through hard problems, learn design patterns, make mistakes, and defend my positions. Again and again and again. To cheat myself of that is to cheat myself of this craft we call engineering. And if I did, what was the point of all those late nights earning my degree?
 
