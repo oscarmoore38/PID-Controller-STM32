@@ -25,7 +25,26 @@ I don't just want to follow a tutorial, slap RTOS on my resume, and call it done
 
 As mentioned in my last repo, I'm currently reading Making Embedded Systems by Elecia White. I want to start incorporating what I'm learning into this project. I'll get a lot wrong, but I'd rather start trying to adopt practices that experienced people in the field recommend than keep figuring everything out in isolation. You'll notice from my last repo that I built a whole project tightly coupled to a specific board, now that I'm changing boards, a lot of my code across many files needs to change with it. I'm currently on a chapter covering the facade design pattern, which addresses exactly this problem: things change in embedded, frequently, so design for it from the start. More on how I apply this as the project develops.
 
-Let's have some fun! 
+
+## How do I use AI? 
+I've been networking with a number of embedded engineers, and I keep getting this question. So before I get into the project, I want to take a quick detour to answer it. Look, it makes sense. AI is everywhere in engineering teams now, and it'll probably come up in interviews too. So here's my philosophy.
+
+I'm self-taught, and in isolation at that. I couldn't do internships during my CS degree as I went to school at night while working full-time and supporting my family, including young kids. So all my embedded experience comes from curiosity. I discovered it about eight months ago, bought some hardware and a couple of books, and started playing around. AI has been critical in helping me ramp up quickly. I treat it like a mentor or tutor. Is it always correct? No. As correct as a TA was at my school? Probably. And in both cases, did I check what I was told against the actual reference manuals? One hundred percent.
+
+I also have firm "lines in the sand" for what I let it do:
+
+- **No code for core project work, and no thinking on my behalf**. I'm a rubber-duck programmer—I love to think out loud. I'll talk through my thoughts with AI in real time, but it can't hand me answers. It can only clarify my thinking and surface things I might be missing—always at a high level.
+
+- **Code only where I don't care about proficiency.** In my Arduino project, I used it to write a Python logging script. But all the bare-metal C and C++ in my projects was written and designed by me. I always make it clear when I didn't author the code.
+
+- **Code reviews, where it plays a senior engineer.** I instruct it never to give me revised code—only to push on my thinking with open-ended questions, like a professor would. One day (hopefully) I'll be doing these for real, and I want the practice.
+
+- **Research.** I don't trust all its output, but it can surface an obscure protocol manual far faster than I could. And when a manual gets too dense, I'll have it simplify the language, then go back and re-read the original with that context in mind.
+
+That's about it. I use AI as a mentor and tutor -- rarely for code -- unless it's a language I'm not focused on growing (Python, JavaScript, etc.). Aside from that, I'm a brand-new engineer. I need the reps. I need to trudge through manuals, write C/C++, think through hard problems, learn design patterns, make mistakes, and defend my positions. Again and again and again. To cheat myself of that is to cheat myself of this craft we call engineering. And if I did, what was the point of all those late nights earning my degree?
+
+**Bottom line: AI is a useful tool, but it's dangerous for entry-level engineers if used incorrectly.**
+
 
 ## Hardware Design
 
@@ -330,30 +349,8 @@ The first time I flashed the code, I opened my terminal and got garbled output. 
 
 It contained values I was expecting, but the output looked cut off and inconsistent. It was also different each time. The fact that data was making it to my computer told me the basic setup was probably correct. That made me think this was less likely to be a hardware issue, such as pin conflicts, and more likely a software issue. I was fairly confident the problem wasn’t in the main block. That logic is straightforward, and I’m giving USART more than enough time to finish transmitting before another display interval fires. So I jumped to the ISR and found my mistake. I didn’t have a guard condition ensuring the data register was actually ready before writing the next byte. At 16 MHz, the processor is moving much faster than the serial line. So before USART had finished processing one byte and moving it out over the wire, the CPU was already trying to write the next one, overwriting data before the peripheral was ready. Once I forced the processor to check that the transmit register was ready before writing the next byte, the problem went away and the output looked as expected.
 
----
 
-#### How do I use AI? 
-I've been networking with a number of embedded engineers, and I keep getting this question. It makes sense—AI is everywhere in engineering teams now, and it'll probably come up in interviews too. So here's a quick section on my philosophy.
-
-I'm self-taught, and in isolation at that. I couldn't do internships during my CS degree as I went to school at night while working full-time and supporting my family, including young kids. So all my embedded experience comes from curiosity. I discovered it about eight months ago, bought some hardware and a couple of books, and started playing around. AI has been critical in helping me ramp up quickly. I treat it like a mentor or tutor. Is it always correct? No. As correct as a TA was at my school? Probably. And in both cases, did I check what I was told against the actual reference manuals? One hundred percent.
-
-I also have firm "lines in the sand" for what I let it do:
-
-- **No code for core project work, and no thinking on my behalf**. I'm a rubber-duck programmer—I love to think out loud. I'll talk through my thoughts with AI in real time, but it can't hand me answers. It can only clarify my thinking and surface things I might be missing—always at a high level.
-
-- **Code only where I don't care about proficiency.** In my Arduino project, I used it to write a Python logging script. But all the bare-metal C and C++ in my projects was written and designed by me. I always make it clear when I didn't author the code.
-
-- **Code reviews, where it plays a senior engineer.** I instruct it never to give me revised code—only to push on my thinking with open-ended questions, like a professor would. One day (hopefully) I'll be doing these for real, and I want the practice.
-
-- **Research.** I don't trust all its output, but it can surface an obscure protocol manual far faster than I could. And when a manual gets too dense, I'll have it simplify the language, then go back and re-read the original with that context in mind.
-
-That's about it. I use AI as a mentor and tutor -- rarely for code -- unless it's a language I'm not focused on growing (Python, JavaScript, etc.). Aside from that, I'm a brand-new engineer. I need the reps. I need to trudge through manuals, write C/C++, think through hard problems, learn design patterns, make mistakes, and defend my positions. Again and again and again. To cheat myself of that is to cheat myself of this craft we call engineering. And if I did, what was the point of all those late nights earning my degree?
-
-**Bottom line: AI is a useful tool, but it's dangerous for entry-level engineers if used incorrectly.**
-
----
-
-### Reflections — Bare-metal, RTOS, and What's Next
+## Reflections — Bare-metal, RTOS, and What's Next
 
 I came into this project with no bare-metal experience and didn't know what to expect. My motivation was mostly curiosity. The verdict? I love it. I started this PI project with an Arduino while targeting robotics roles, but now I'm drawn to working with hardware more broadly. There's still plenty left to explore, but I genuinely enjoyed configuring, testing, and debugging it.
 
