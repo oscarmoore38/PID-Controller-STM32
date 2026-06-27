@@ -29,7 +29,7 @@ As mentioned in my last repo, I'm currently reading Making Embedded Systems by E
 ## How do I use AI? 
 I've been networking with a number of embedded engineers, and I keep getting this question. So before I get into the project, I want to take a quick detour to answer it. Look, it makes sense. AI is everywhere in engineering teams now, and it'll probably come up in interviews too. So here's my philosophy.
 
-I'm self-taught, and in isolation at that. I couldn't do internships during my CS degree as I went to school at night while working full-time and supporting my family, including young kids. So all my embedded experience comes from curiosity. I discovered it about eight months ago, bought some hardware and a couple of books, and started playing around. AI has been critical in helping me ramp up quickly. I treat it like a mentor or tutor. Is it always correct? No. As correct as a TA was at my school? Probably. And in both cases, did I check what I was told against the actual reference manuals? One hundred percent.
+I'm self-taught, and in isolation at that. I couldn't do internships during my CS degree as I went to school at night while working full-time and supporting my family, including young kids. So all my embedded experience comes from curiosity. I discovered it about eight months ago, bought some hardware and a couple of books, and started playing around. AI has been critical in helping me ramp up quickly. I treat it like a mentor or tutor. Is it always correct? No. As correct as a TA was at my school? Probably. And in both cases, did I check what I was told against the actual documentation? One hundred percent.
 
 I also have firm "lines in the sand" for what I let it do:
 
